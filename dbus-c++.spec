@@ -1,6 +1,12 @@
+%if 0%{?rhel}
+%global with_ecore 0
+%else # %%{?rhel}
+%global with_ecore 1
+%endif # %%{?rhel}
+
 Name:          dbus-c++
 Version:       0.9.0
-Release:       15%{?dist}
+Release:       16%{?dist}
 Summary:       Native C++ bindings for D-Bus
 
 Group:         System Environment/Libraries
@@ -24,18 +30,22 @@ BuildRequires: glib2-devel
 BuildRequires: gtkmm24-devel
 BuildRequires: autoconf automake libtool
 BuildRequires: expat-devel
+%if 0%{?with_ecore}
 BuildRequires: ecore-devel
+%endif
 
 %description
 dbus-c++ attempts to provide a C++ API for D-Bus.
 The library has a glib/gtk and an Ecore mainloop integration.
 
+%if 0%{?with_ecore}
 %package       ecore
 Summary:       Ecore library for %{name}
 Group:         System Environment/Libraries
 Requires:      %{name}%{?_isa} = %{version}-%{release}
 %description   ecore
 This package contains the ecore mainloop library for %{name}
+%endif
 
 %package       glib
 Summary:       GLib library for %{name}
@@ -65,9 +75,18 @@ sed -i 's/libtoolize --force --copy/libtoolize -if --copy/' bootstrap
 %patch5 -p1 -b .writechar
 
 %build
-./autogen.sh
+./autogen.sh \
+%if !0%{?with_ecore}
+    --disable-ecore \
+%endif
+
 export CPPFLAGS='%{optflags}' CXXFLAGS='--std=gnu++11 %{optflags}'
-%configure --disable-static --disable-tests
+%configure \
+%if !0%{?with_ecore}
+    --disable-ecore \
+%endif
+    --disable-static \
+    --disable-tests
 make %{?_smp_mflags}
 
 %install
@@ -87,8 +106,10 @@ find $RPM_BUILD_ROOT -name '*.la' -exec rm -f {} ';'
 %{_bindir}/dbusxx-xml2cpp
 %{_libdir}/libdbus-c++-1.so.0*
 
+%if 0%{?with_ecore}
 %files ecore
 %{_libdir}/libdbus-c++-ecore-1.so.0*
+%endif
 
 %files glib
 %{_libdir}/libdbus-c++-glib-1.so.0*
@@ -100,6 +121,9 @@ find $RPM_BUILD_ROOT -name '*.la' -exec rm -f {} ';'
 %{_libdir}/pkgconfig/*
 
 %changelog
+* Mon Aug 07 2017 Jajauma's Packages <jajauma@yandex.ru> - 0.9.0-16
+- Disable ecore mainloop support on RHEL
+
 * Wed Aug 02 2017 Fedora Release Engineering <releng@fedoraproject.org> - 0.9.0-15
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_27_Binutils_Mass_Rebuild
 
